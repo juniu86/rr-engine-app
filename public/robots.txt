@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://engine.rres.com.br/sitemap.xml
