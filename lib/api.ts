@@ -92,11 +92,11 @@ export async function pingHealth(): Promise<{
 }
 
 /**
- * Busca o usuário autenticado pelo backend (procedure tRPC `me`).
+ * Busca o usuário autenticado pelo backend (procedure tRPC `auth.me`).
  *
  * Quando token é null, o backend retorna null (procedure pública).
  * Quando token é válido, retorna o User do banco (sincronizado com Clerk).
  */
 export async function fetchMe(token: string | null) {
-  return callTrpcQuery<unknown>("me", undefined, token);
+  return callTrpcQuery<unknown>("auth.me", undefined, token);
 }
