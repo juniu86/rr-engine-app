@@ -516,6 +516,8 @@ export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
   completed: "Concluído",
   failed: "Falhou",
   skipped: "Pulado",
+  waiting_for_user_input: "Aguardando dados",
+  needs_review: "Precisa revisão",
 };
 
 export const AGENT_STATUS_COLOR: Record<AgentStatus, string> = {
@@ -524,6 +526,8 @@ export const AGENT_STATUS_COLOR: Record<AgentStatus, string> = {
   completed: "var(--green)",
   failed: "var(--red)",
   skipped: "var(--text-muted)",
+  waiting_for_user_input: "var(--orange)",
+  needs_review: "var(--orange)",
 };
 
 /* ============================================================
