@@ -397,6 +397,60 @@ export async function updateSettings(
 }
 
 /* ============================================================
+ * Document procedures (geração e download de PDFs/XLSX)
+ * ============================================================ */
+
+export type GeneratedDocument = {
+  id: number;
+  projectId: number;
+  type: "proposal" | "memoria" | "schedule" | string;
+  fileUrl: string;
+  fileName: string | null;
+  createdAt: string;
+};
+
+export async function fetchDocuments(projectId: number, token: string | null) {
+  return callTrpcQuery<GeneratedDocument[]>(
+    "document.list",
+    { projectId },
+    token
+  );
+}
+
+export async function generateProposal(
+  projectId: number,
+  token: string | null
+) {
+  return callTrpcMutation<{ url: string; key?: string }>(
+    "document.generateProposal",
+    { projectId },
+    token
+  );
+}
+
+export async function generateMemoria(
+  projectId: number,
+  token: string | null
+) {
+  return callTrpcMutation<{ url: string; key?: string }>(
+    "document.generateMemoria",
+    { projectId },
+    token
+  );
+}
+
+export async function generateSchedule(
+  projectId: number,
+  token: string | null
+) {
+  return callTrpcMutation<{ url: string; key?: string }>(
+    "document.generateSchedule",
+    { projectId },
+    token
+  );
+}
+
+/* ============================================================
  * Helpers — labels de agentes
  * ============================================================ */
 
