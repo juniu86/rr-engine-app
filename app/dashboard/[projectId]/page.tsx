@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { AgentPipelineLive } from "@/components/AgentPipelineLive";
 import { SITE_URL } from "@/lib/site-config";
 import {
   fetchProject,
+  fetchAgentExecutions,
   STATUS_LABEL,
   STATUS_COLOR,
   CONTRACT_TYPE_LABEL,
@@ -31,9 +33,12 @@ export default async function ProjectDetails({
   const { getToken } = await auth();
   const token = await getToken();
 
-  const result = await fetchProject(id, token);
+  const [projectResult, executionsResult] = await Promise.all([
+    fetchProject(id, token),
+    fetchAgentExecutions(id, token),
+  ]);
 
-  if (!result.ok) {
+  if (!projectResult.ok) {
     return (
       <>
         <Header showFullNav={false} />
@@ -44,7 +49,7 @@ export default async function ProjectDetails({
                 Não foi possível carregar o projeto
               </h1>
               <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
-                {result.error}
+                {projectResult.error}
               </p>
               <Link href="/dashboard" className="btn btn-outline">
                 Voltar pro Dashboard
@@ -57,7 +62,8 @@ export default async function ProjectDetails({
     );
   }
 
-  const project = result.data;
+  const project = projectResult.data;
+  const executions = executionsResult.ok ? executionsResult.data : [];
 
   return (
     <>
@@ -102,27 +108,21 @@ export default async function ProjectDetails({
                 {project.description}
               </p>
             )}
+
+            {project.totalPrice && (
+              <div style={{ paddingTop: "1.5rem", borderTop: "1px solid var(--border-strong)", display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+                <Stat label="Custo direto" value={project.totalCostDirect} />
+                <Stat label="BDI" value={project.totalBdi} />
+                <Stat label="Impostos" value={project.totalTaxes} />
+                <Stat label="Total" value={project.totalPrice} highlight />
+              </div>
+            )}
           </div>
 
-          <div
-            style={{
-              background: "rgba(245, 158, 11, 0.08)",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-              borderRadius: "var(--radius-sm)",
-              padding: "1.5rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <h2 style={{ fontSize: "1rem", margin: "0 0 0.5rem", color: "var(--orange)", fontWeight: 700 }}>
-              Em construção — Sprint 4 do plano de migração
-            </h2>
-            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-              Pipeline de execução, AIChatBox, downloads e visualização de resultados estão sendo portados. Por enquanto você pode criar projetos via texto, ver na lista e visitar essa página de detalhes. Próximas adições: trigger do pipeline, status em tempo real, downloads PDF/XLSX.
-            </p>
-          </div>
+          <AgentPipelineLive projectId={id} initialExecutions={executions} />
 
           {project.memorialDescritivo && (
-            <div className="glass" style={{ padding: "2rem", marginBottom: "1.5rem" }}>
+            <div className="glass" style={{ padding: "2rem" }}>
               <h2 style={{ fontSize: "1.1rem", margin: "0 0 1rem", fontWeight: 700 }}>
                 Memorial descritivo
               </h2>
@@ -146,5 +146,32 @@ export default async function ProjectDetails({
       </main>
       <Footer />
     </>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string | null;
+  highlight?: boolean;
+}) {
+  if (!value) return null;
+  const formatted = Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return (
+    <div>
+      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>{label}</div>
+      <div
+        style={{
+          fontSize: highlight ? "1.25rem" : "1rem",
+          fontWeight: highlight ? 700 : 600,
+          color: highlight ? "var(--cyan)" : "var(--text)",
+        }}
+      >
+        {formatted}
+      </div>
+    </div>
   );
 }

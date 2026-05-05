@@ -477,7 +477,7 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
   box-shadow: 0 0 30px rgba(22, 82, 240, 0.4);
 }
@@ -486,6 +486,17 @@ body {
   background: var(--accent-hover);
   box-shadow: 0 0 40px rgba(22, 82, 240, 0.55);
   transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .btn-secondary {

@@ -269,19 +269,165 @@ export async function deleteProject(id: number, token: string | null) {
 }
 
 /* ============================================================
- * Agent execution procedures (subset — pra Sprint 4 e 5)
+ * Agent procedures
  * ============================================================ */
+
+export type AgentType =
+  | "engenheiro_tecnico"
+  | "logistica"
+  | "orcamentista"
+  | "tributario"
+  | "comercial"
+  | "gestao_projetos"
+  | "financeiro"
+  | "juridico"
+  | "board"
+  | "auditor";
+
+export type AgentStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+export type AgentDefinition = {
+  type: AgentType;
+  order: number;
+  name: string;
+  description: string;
+};
+
+export type AgentExecution = {
+  id: number;
+  projectId: number;
+  agentType: AgentType;
+  agentOrder: number;
+  status: AgentStatus;
+  output: unknown;
+  error: string | null;
+  tokensUsed: number | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchAgentList(token: string | null) {
+  return callTrpcQuery<AgentDefinition[]>("agent.list", undefined, token);
+}
 
 export async function fetchAgentExecutions(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcQuery<unknown[]>(
+  return callTrpcQuery<AgentExecution[]>(
     "agent.getExecutions",
     { projectId },
     token
   );
 }
+
+export async function executeAllAgents(
+  projectId: number,
+  token: string | null
+) {
+  return callTrpcMutation<unknown>("agent.executeAll", { projectId }, token);
+}
+
+export async function executeSingleAgent(
+  projectId: number,
+  agentType: AgentType,
+  token: string | null
+) {
+  return callTrpcMutation<unknown>(
+    "agent.execute",
+    { projectId, agentType },
+    token
+  );
+}
+
+/* ============================================================
+ * Settings procedures
+ * ============================================================ */
+
+export type RegimeTributario =
+  | "simples_nacional"
+  | "lucro_presumido"
+  | "lucro_real";
+
+export type CompanySettings = {
+  id: number;
+  userId: number;
+  companyName: string | null;
+  cnpj: string | null;
+  priceRegion: string | null;
+  taxaLeisSociais: string | null;
+  bdiPercentual: string | null;
+  lucroPercentual: string | null;
+  issPercentual: string | null;
+  pisPercentual: string | null;
+  cofinsPercentual: string | null;
+  irpjPercentual: string | null;
+  csllPercentual: string | null;
+  adminCentralPercentual: string | null;
+  despesasFinanceirasPercentual: string | null;
+  riscosPercentual: string | null;
+  regimeTributario: RegimeTributario | null;
+  faixaSimples: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchSettings(token: string | null) {
+  return callTrpcQuery<CompanySettings>("settings.get", undefined, token);
+}
+
+export type UpdateSettingsInput = Partial<
+  Omit<
+    CompanySettings,
+    "id" | "userId" | "createdAt" | "updatedAt"
+  >
+>;
+
+export async function updateSettings(
+  input: UpdateSettingsInput,
+  token: string | null
+) {
+  return callTrpcMutation<CompanySettings>("settings.update", input, token);
+}
+
+/* ============================================================
+ * Helpers — labels de agentes
+ * ============================================================ */
+
+export const AGENT_LABEL: Record<AgentType, string> = {
+  engenheiro_tecnico: "Engenheiro Técnico",
+  logistica: "Logística",
+  orcamentista: "Orçamentista",
+  tributario: "Tributário",
+  comercial: "Comercial",
+  gestao_projetos: "Gestão de Projetos",
+  financeiro: "Financeiro",
+  juridico: "Jurídico",
+  board: "Board",
+  auditor: "Auditor",
+};
+
+export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
+  pending: "Aguardando",
+  running: "Em execução",
+  completed: "Concluído",
+  failed: "Falhou",
+  skipped: "Pulado",
+};
+
+export const AGENT_STATUS_COLOR: Record<AgentStatus, string> = {
+  pending: "var(--text-muted)",
+  running: "var(--cyan)",
+  completed: "var(--green)",
+  failed: "var(--red)",
+  skipped: "var(--text-muted)",
+};
 
 /* ============================================================
  * Helpers de UI — labels e cores por status
