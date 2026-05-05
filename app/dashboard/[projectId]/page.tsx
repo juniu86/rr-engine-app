@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { AgentPipelineLive } from "@/components/AgentPipelineLive";
 import { ProjectDownloads } from "@/components/ProjectDownloads";
+import { MissingInfoModal } from "@/components/MissingInfoModal";
 import { SITE_URL } from "@/lib/site-config";
 import {
   fetchProject,
@@ -121,6 +122,8 @@ export default async function ProjectDetails({
           </div>
 
           <AgentPipelineLive projectId={id} initialExecutions={executions} />
+
+          <MissingInfoModal projectId={id} initialExecutions={executions} />
 
           {executions.length > 0 && executions.every((e) => e.status === "completed") && (
             <ProjectDownloads projectId={id} />

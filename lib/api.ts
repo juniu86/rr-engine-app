@@ -289,7 +289,9 @@ export type AgentStatus =
   | "running"
   | "completed"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "waiting_for_user_input"
+  | "needs_review";
 
 export type AgentDefinition = {
   type: AgentType;
@@ -307,6 +309,9 @@ export type AgentExecution = {
   output: unknown;
   error: string | null;
   tokensUsed: number | null;
+  missingInfoRequests: MissingInfoRequest[] | null;
+  userResponses: Record<string, string | number> | null;
+  iterationCount: number | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -345,6 +350,44 @@ export async function executeSingleAgent(
     token
   );
 }
+
+/**
+ * Continua um agente que está em waiting_for_user_input,
+ * passando as respostas do usuário pra completar a análise.
+ */
+export async function continueAgent(
+  projectId: number,
+  agentType: AgentType,
+  userResponses: Record<string, string | number>,
+  token: string | null
+) {
+  return callTrpcMutation<unknown>(
+    "agent.continueAgent",
+    { projectId, agentType, userResponses },
+    token
+  );
+}
+
+/* ============================================================
+ * Tipos de missing info (perguntas do Engenheiro Técnico)
+ * ============================================================ */
+
+export type MissingInfoFieldType =
+  | "text"
+  | "number"
+  | "select"
+  | "multiselect"
+  | "boolean";
+
+export type MissingInfoRequest = {
+  fieldId: string;
+  question: string;
+  fieldType?: MissingInfoFieldType;
+  options?: string[];
+  unit?: string;
+  required?: boolean;
+  context?: string;
+};
 
 /* ============================================================
  * Settings procedures
