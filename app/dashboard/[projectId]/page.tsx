@@ -7,6 +7,9 @@ import { Footer } from "@/components/Footer";
 import { AgentPipelineLive } from "@/components/AgentPipelineLive";
 import { ProjectDownloads } from "@/components/ProjectDownloads";
 import { MissingInfoModal } from "@/components/MissingInfoModal";
+import { AuditorReport } from "@/components/AuditorReport";
+import { ProjectRevisions } from "@/components/ProjectRevisions";
+import type { AuditorOutput } from "@/lib/api";
 import { SITE_URL } from "@/lib/site-config";
 import {
   fetchProject,
@@ -125,9 +128,17 @@ export default async function ProjectDetails({
 
           <MissingInfoModal projectId={id} initialExecutions={executions} />
 
+          {(() => {
+            const auditorExec = executions.find((e) => e.agentType === "auditor" && e.status === "completed");
+            const auditorOutput = auditorExec?.output as AuditorOutput | undefined;
+            return auditorOutput ? <AuditorReport output={auditorOutput} /> : null;
+          })()}
+
           {executions.length > 0 && executions.every((e) => e.status === "completed") && (
             <ProjectDownloads projectId={id} />
           )}
+
+          <ProjectRevisions projectId={id} initialMemorial={project.memorialDescritivo} />
 
           {project.memorialDescritivo && (
             <div className="glass" style={{ padding: "2rem" }}>

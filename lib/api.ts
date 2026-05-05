@@ -300,6 +300,39 @@ export type AgentDefinition = {
   description: string;
 };
 
+export type AuditorValidation = {
+  rule: string;
+  description: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+  severity: "critical" | "warning" | "info";
+  recommendation?: string;
+};
+
+export type AuditorOutput = {
+  isValid: boolean;
+  validationScore: number;
+  criticalErrors: number;
+  warnings: number;
+  validations: AuditorValidation[];
+  auditSeal: "approved" | "approved_with_warnings" | "rejected";
+  auditTimestamp: string;
+  auditNotes: string;
+  financialSummary?: {
+    directCost: number;
+    logisticsCost: number;
+    baseCost: number;
+    bdiAmount: number;
+    taxes: number;
+    finalPrice: number;
+    grossMargin: number;
+    grossMarginPercent: number;
+    netMargin: number;
+    netMarginPercent: number;
+  };
+};
+
 export type AgentExecution = {
   id: number;
   projectId: number;
@@ -437,6 +470,40 @@ export async function updateSettings(
   token: string | null
 ) {
   return callTrpcMutation<CompanySettings>("settings.update", input, token);
+}
+
+/* ============================================================
+ * Project revisions
+ * ============================================================ */
+
+export type RevisionInfo = {
+  original: Project | null;
+  revisions: Project[];
+  currentRevisionNumber: number;
+};
+
+export async function fetchRevisions(projectId: number, token: string | null) {
+  return callTrpcQuery<RevisionInfo>(
+    "project.getRevisions",
+    { projectId },
+    token
+  );
+}
+
+export async function createRevision(
+  projectId: number,
+  newMemorialDescritivo: string,
+  token: string | null
+) {
+  return callTrpcMutation<{
+    success: true;
+    newProjectId: number;
+    message: string;
+  }>(
+    "project.createRevision",
+    { projectId, newMemorialDescritivo },
+    token
+  );
 }
 
 /* ============================================================

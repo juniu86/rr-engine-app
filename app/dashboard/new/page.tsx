@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { MemorialPdfUpload } from "@/components/MemorialPdfUpload";
 import { SITE_URL } from "@/lib/site-config";
 import { createProject } from "@/lib/api";
 
@@ -126,14 +127,29 @@ export default async function NewProject({
                 multiline
               />
 
-              <Field
-                label="Memorial descritivo"
-                name="memorialDescritivo"
-                placeholder="Cole aqui o texto do memorial. Aceita Markdown."
-                multiline
-                rows={12}
-                hint="Por enquanto só texto. Upload de PDF chega no próximo sprint."
-              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Memorial descritivo</span>
+                <MemorialPdfUpload targetTextareaName="memorialDescritivo" />
+                <textarea
+                  name="memorialDescritivo"
+                  placeholder="Cole o texto aqui ou suba um PDF acima"
+                  rows={12}
+                  style={{
+                    width: "100%",
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid var(--border-strong)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "0.75rem 1rem",
+                    color: "var(--text)",
+                    fontSize: "0.95rem",
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                  Aceita Markdown. PDF é processado no navegador, sem subir pro servidor.
+                </span>
+              </div>
 
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
