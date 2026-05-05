@@ -18,15 +18,20 @@ export type ApiResponse<T> =
  * Core helpers — query (GET) e mutation (POST) tRPC v11
  * ============================================================ */
 
+/**
+ * Backend usa superjson como transformer. Inputs precisam estar envelopados
+ * em `{ json: <value> }` tanto em GET (querystring) quanto POST (body).
+ * Outputs também vem envelopados — desempacotamos `data.json ?? data`.
+ */
+
 async function callTrpcQuery<T>(
   procedure: string,
   input: unknown | undefined,
   token: string | null
 ): Promise<ApiResponse<T>> {
   const url = new URL(`${API_URL}/api/trpc/${procedure}`);
-  if (input !== undefined) {
-    url.searchParams.set("input", JSON.stringify(input));
-  }
+  // tRPC superjson: envelopa input em { json: <value> }, mesmo quando undefined.
+  url.searchParams.set("input", JSON.stringify({ json: input ?? null }));
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -58,7 +63,7 @@ async function callTrpcQuery<T>(
   }
 
   const body = await res.json().catch(() => null);
-  const data = body?.result?.data;
+  const data = unwrapTrpcData(body);
   return { ok: true, data: data as T };
 }
 
@@ -79,7 +84,8 @@ async function callTrpcMutation<T>(
     res = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify(input),
+      // tRPC superjson exige body envelopado em { json: <value> }.
+      body: JSON.stringify({ json: input }),
       cache: "no-store",
     });
   } catch (err) {
@@ -100,8 +106,21 @@ async function callTrpcMutation<T>(
   }
 
   const body = await res.json().catch(() => null);
-  const data = body?.result?.data;
+  const data = unwrapTrpcData(body);
   return { ok: true, data: data as T };
+}
+
+/**
+ * Resposta tRPC superjson: { result: { data: { json: <T>, meta?: ... } } }
+ * Se sem superjson server-side: { result: { data: <T> } }
+ * Aceitamos os dois formatos.
+ */
+function unwrapTrpcData(body: unknown): unknown {
+  const data = (body as { result?: { data?: unknown } } | null)?.result?.data;
+  if (data && typeof data === "object" && "json" in data) {
+    return (data as { json: unknown }).json;
+  }
+  return data;
 }
 
 function parseTrpcError(text: string): string | null {
