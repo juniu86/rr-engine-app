@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ptBR } from "@clerk/localizations";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site-config";
 import "./globals.css";
 
@@ -84,24 +86,45 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <head>
-        {GSC_TOKEN && <meta name="google-site-verification" content={GSC_TOKEN} />}
-        {GA_ID && (
-          <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${GA_ID}', { anonymize_ip: true });`,
-              }}
-            />
-          </>
-        )}
-      </head>
-      <body>
-        <div className="bg-mesh" aria-hidden="true" />
-        {children}
-      </body>
-    </html>
+    <ClerkProvider
+      localization={ptBR}
+      appearance={{
+        variables: {
+          colorPrimary: "#1652f0",
+          colorBackground: "#0a1f44",
+          colorInputBackground: "rgba(15, 40, 85, 0.55)",
+          colorInputText: "#ffffff",
+          colorText: "#ffffff",
+          colorTextSecondary: "#cbd5e1",
+          colorNeutral: "#94a3b8",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+          borderRadius: "8px",
+        },
+        elements: {
+          card: "glass",
+          formButtonPrimary: "btn btn-primary",
+        },
+      }}
+    >
+      <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
+        <head>
+          {GSC_TOKEN && <meta name="google-site-verification" content={GSC_TOKEN} />}
+          {GA_ID && (
+            <>
+              <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${GA_ID}', { anonymize_ip: true });`,
+                }}
+              />
+            </>
+          )}
+        </head>
+        <body>
+          <div className="bg-mesh" aria-hidden="true" />
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

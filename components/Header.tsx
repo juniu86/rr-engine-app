@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 interface HeaderProps {
   showFullNav?: boolean;
@@ -22,8 +23,14 @@ export function Header({ showFullNav = true }: HeaderProps) {
               <Link href="/#faq">FAQ</Link>
             </>
           )}
-          <Link href="/login" className="nav-login">Entrar</Link>
-          <Link href="/#contato" className="nav-cta">Fazer demo</Link>
+          <SignedOut>
+            <Link href="/sign-in" className="nav-login">Entrar</Link>
+            <Link href="/sign-up" className="nav-cta">Criar conta</Link>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard" className="nav-login">Dashboard</Link>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </nav>
       </div>
     </header>
