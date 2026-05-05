@@ -1,12 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 
 interface HeaderProps {
   showFullNav?: boolean;
 }
 
-export function Header({ showFullNav = true }: HeaderProps) {
+export async function Header({ showFullNav = true }: HeaderProps) {
+  const { userId } = await auth();
+  const isSignedIn = Boolean(userId);
+
   return (
     <header className="site-header">
       <div className="container header-inner">
@@ -23,14 +27,17 @@ export function Header({ showFullNav = true }: HeaderProps) {
               <Link href="/#faq">FAQ</Link>
             </>
           )}
-          <SignedOut>
-            <Link href="/sign-in" className="nav-login">Entrar</Link>
-            <Link href="/sign-up" className="nav-cta">Criar conta</Link>
-          </SignedOut>
-          <SignedIn>
-            <Link href="/dashboard" className="nav-login">Dashboard</Link>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          {isSignedIn ? (
+            <>
+              <Link href="/dashboard" className="nav-login">Dashboard</Link>
+              <UserButton afterSignOutUrl="/" />
+            </>
+          ) : (
+            <>
+              <Link href="/sign-in" className="nav-login">Entrar</Link>
+              <Link href="/sign-up" className="nav-cta">Criar conta</Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

@@ -7,7 +7,7 @@ interface LegalLayoutProps {
   children: React.ReactNode;
 }
 
-export function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
+export async function LegalLayout({ title, lastUpdated, children }: LegalLayoutProps) {
   return (
     <>
       <Header showFullNav={false} />
