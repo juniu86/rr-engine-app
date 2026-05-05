@@ -4,6 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/site-config";
+import { pingHealth, fetchMe } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -13,8 +14,15 @@ export const metadata: Metadata = {
 };
 
 export default async function Dashboard() {
-  const { userId } = await auth();
+  const { userId, getToken } = await auth();
   const user = await currentUser();
+
+  // Sprint 3: bate no backend Railway pra validar conectividade end-to-end.
+  // Healthcheck (sem auth) + me (com Bearer token do Clerk).
+  const token = await getToken();
+  const [health, meResult] = await Promise.all([pingHealth(), fetchMe(token)]);
+
+  const backendOk = health.ok && meResult.ok;
 
   return (
     <>
@@ -31,6 +39,28 @@ export default async function Dashboard() {
 
             <div
               style={{
+                background: backendOk ? "rgba(34, 197, 94, 0.08)" : "rgba(239, 68, 68, 0.08)",
+                border: `1px solid ${backendOk ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+                borderRadius: "var(--radius-sm)",
+                padding: "1.25rem 1.5rem",
+                marginBottom: "2rem",
+              }}
+            >
+              <h2 style={{ fontSize: "1rem", margin: "0 0 0.5rem", color: backendOk ? "#22c55e" : "#ef4444", fontWeight: 700 }}>
+                {backendOk ? "Backend conectado" : "Backend offline ou com erro"}
+              </h2>
+              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                Health: <code style={{ color: "var(--cyan)" }}>{health.ok ? `${health.status} (${health.timestamp})` : `erro: ${health.error}`}</code>
+              </p>
+              <p style={{ margin: "0.25rem 0 0", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                Sync user (procedure me): <code style={{ color: "var(--cyan)" }}>
+                  {meResult.ok ? (meResult.data ? "ok — user sincronizado no banco" : "ok mas user null") : `erro ${meResult.status}: ${meResult.error}`}
+                </code>
+              </p>
+            </div>
+
+            <div
+              style={{
                 background: "rgba(245, 158, 11, 0.08)",
                 border: "1px solid rgba(245, 158, 11, 0.3)",
                 borderRadius: "var(--radius-sm)",
@@ -39,11 +69,11 @@ export default async function Dashboard() {
               }}
             >
               <h2 style={{ fontSize: "1rem", margin: "0 0 0.5rem", color: "var(--orange)", fontWeight: 700 }}>
-                Em construção — Sprint 2 do plano de migração
+                Em construção — Sprint 3 do plano de migração
               </h2>
               <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-                A nova autenticação está funcionando. As funcionalidades do produto (geração de orçamento, dashboard de
-                projetos, configurações) estão sendo migradas do tenant Manus em sprints. Estimativa de conclusão: 2-3
+                Backend rodando em api.rres.com.br. As funcionalidades do produto (geração de orçamento, dashboard de
+                projetos, configurações) estão sendo portadas do tenant Manus em sprints. Estimativa de conclusão: 2-3
                 semanas.
               </p>
             </div>
