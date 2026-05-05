@@ -30,7 +30,7 @@ export async function Header({ showFullNav = true }: HeaderProps) {
           {isSignedIn ? (
             <>
               <Link href="/dashboard" className="nav-login">Dashboard</Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </>
           ) : (
             <>
