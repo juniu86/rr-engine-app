@@ -310,6 +310,20 @@ export type AuditorValidation = {
   recommendation?: string;
 };
 
+export type AuditorCorrectionItem = {
+  description: string;
+  totalCost?: number;
+  reason?: string;
+};
+
+export type AuditorCorrections = {
+  budgetItemsToRemove?: string[]; // descrições das linhas a remover
+  logisticsToRemove?: string[];
+  totalImpact?: number;
+  correctedDirectCost?: number;
+  correctedLogisticsCost?: number;
+};
+
 export type AuditorOutput = {
   isValid: boolean;
   validationScore: number;
@@ -319,6 +333,7 @@ export type AuditorOutput = {
   auditSeal: "approved" | "approved_with_warnings" | "rejected";
   auditTimestamp: string;
   auditNotes: string;
+  corrections?: AuditorCorrections;
   financialSummary?: {
     directCost: number;
     logisticsCost: number;
@@ -332,6 +347,26 @@ export type AuditorOutput = {
     netMarginPercent: number;
   };
 };
+
+export async function applyAuditCorrections(
+  projectId: number,
+  budgetItemsToRemove: string[],
+  logisticsToRemove: string[],
+  token: string | null
+) {
+  return callTrpcMutation<{
+    success: true;
+    budgetRemoved: number;
+    logisticsRemoved: number;
+    correctedDirectCost: number;
+    correctedLogisticsCost: number;
+    correctedFinalPrice: number;
+  }>(
+    "project.applyAuditCorrections",
+    { projectId, budgetItemsToRemove, logisticsToRemove },
+    token
+  );
+}
 
 export type AgentExecution = {
   id: number;

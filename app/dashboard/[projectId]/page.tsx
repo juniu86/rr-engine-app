@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { AgentPipelineLive } from "@/components/AgentPipelineLive";
 import { ProjectDownloads } from "@/components/ProjectDownloads";
 import { MissingInfoModal } from "@/components/MissingInfoModal";
+import { AuditCorrectionsModal } from "@/components/AuditCorrectionsModal";
 import { AuditorReport } from "@/components/AuditorReport";
 import { ProjectRevisions } from "@/components/ProjectRevisions";
 import type { AuditorOutput } from "@/lib/api";
@@ -127,6 +128,12 @@ export default async function ProjectDetails({
           <AgentPipelineLive projectId={id} initialExecutions={executions} />
 
           <MissingInfoModal projectId={id} initialExecutions={executions} />
+
+          <AuditCorrectionsModal
+            projectId={id}
+            initialExecutions={executions}
+            projectStatus={project.status}
+          />
 
           {(() => {
             const auditorExec = executions.find((e) => e.agentType === "auditor" && e.status === "completed");

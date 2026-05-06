@@ -28,15 +28,23 @@ export function MissingInfoModal({ projectId, initialExecutions }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Polling leve enquanto aguarda input — pra detectar mudança de status.
+  // Polling ativo enquanto o pipeline ainda não chegou ao estado final.
+  // Antes só ligava se já havia `waiting_for_user_input` no carregamento
+  // inicial — bug que impedia o modal de aparecer automaticamente quando
+  // a transição acontecia pós-render. Agora pollamos enquanto qualquer
+  // agente está em pending/running/waiting, e paramos quando todos os
+  // executions chegaram a um estado final (completed/failed/skipped).
   useEffect(() => {
-    const waiting = executions.find((e) => e.status === "waiting_for_user_input");
-    if (!waiting) return;
+    const isPipelineActive = executions.some((e) =>
+      ["pending", "running", "waiting_for_user_input"].includes(e.status)
+    );
+    if (!isPipelineActive) return;
+
     const interval = setInterval(async () => {
       const token = await getToken();
       const res = await fetchAgentExecutions(projectId, token);
       if (res.ok) setExecutions(res.data);
-    }, 8000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [executions, projectId, getToken]);
 
