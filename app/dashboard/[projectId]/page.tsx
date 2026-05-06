@@ -10,13 +10,12 @@ import { MissingInfoModal } from "@/components/MissingInfoModal";
 import { AuditCorrectionsModal } from "@/components/AuditCorrectionsModal";
 import { AuditorReport } from "@/components/AuditorReport";
 import { ProjectRevisions } from "@/components/ProjectRevisions";
+import { ProjectStatusBadge } from "@/components/ProjectStatusBadge";
 import type { AuditorOutput } from "@/lib/api";
 import { SITE_URL } from "@/lib/site-config";
 import {
   fetchProject,
   fetchAgentExecutions,
-  STATUS_LABEL,
-  STATUS_COLOR,
   CONTRACT_TYPE_LABEL,
 } from "@/lib/api";
 
@@ -94,19 +93,10 @@ export default async function ProjectDetails({
                   <span>• Criado em {new Date(project.createdAt).toLocaleDateString("pt-BR")}</span>
                 </div>
               </div>
-              <span
-                style={{
-                  fontSize: "0.85rem",
-                  color: STATUS_COLOR[project.status],
-                  background: `color-mix(in srgb, ${STATUS_COLOR[project.status]} 15%, transparent)`,
-                  padding: "0.4rem 0.85rem",
-                  borderRadius: "999px",
-                  whiteSpace: "nowrap",
-                  fontWeight: 600,
-                }}
-              >
-                {STATUS_LABEL[project.status]}
-              </span>
+              <ProjectStatusBadge
+                projectId={id}
+                initialStatus={project.status}
+              />
             </div>
 
             {project.description && (
