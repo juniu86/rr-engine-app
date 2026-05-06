@@ -561,6 +561,72 @@ export async function generateSchedule(
 }
 
 /* ============================================================
+ * Stripe / Subscriptions
+ * ============================================================ */
+
+export type PlanTier = "starter" | "pro" | "business";
+
+export type Plan = {
+  tier: PlanTier;
+  name: string;
+  priceMonthly: number;
+  currency: "BRL";
+  quota: number | null;
+  cap: number | null;
+  priceId: string;
+};
+
+export type Subscription = {
+  plan: PlanTier | null;
+  status: string;
+  currentPeriodEnd: string | null;
+  quotaUsed: number;
+  quotaLimit: number | null;
+  obraValueCap: number | null;
+  cancelAtPeriodEnd?: boolean;
+};
+
+export async function fetchPlans(token: string | null) {
+  return callTrpcQuery<Plan[]>("stripe.listPlans", undefined, token);
+}
+
+export async function fetchCurrentSubscription(token: string | null) {
+  return callTrpcQuery<Subscription | null>(
+    "stripe.getCurrentSubscription",
+    undefined,
+    token
+  );
+}
+
+export async function createCheckout(tier: PlanTier, token: string | null) {
+  return callTrpcMutation<{ sessionId: string; url: string }>(
+    "stripe.createCheckout",
+    { tier },
+    token
+  );
+}
+
+export async function cancelSubscription(token: string | null) {
+  return callTrpcMutation<{ success: true; cancelAt: string }>(
+    "stripe.cancelSubscription",
+    undefined,
+    token
+  );
+}
+
+export const PLAN_LABEL: Record<PlanTier, string> = {
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
+};
+
+export const PLAN_TAGLINE: Record<PlanTier, string> = {
+  starter: "Pra quem está começando",
+  pro: "Volume mensal previsível",
+  business: "Operação sem teto",
+};
+
+/* ============================================================
  * Helpers — labels de agentes
  * ============================================================ */
 

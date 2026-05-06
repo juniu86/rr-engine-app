@@ -4,7 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/site-config";
-import { fetchProjects, STATUS_LABEL, STATUS_COLOR, CONTRACT_TYPE_LABEL, type Project } from "@/lib/api";
+import { fetchProjects, fetchCurrentSubscription, STATUS_LABEL, STATUS_COLOR, CONTRACT_TYPE_LABEL, PLAN_LABEL, type Project } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -18,9 +18,13 @@ export default async function Dashboard() {
   const user = await currentUser();
   const token = await getToken();
 
-  const result = await fetchProjects(token);
+  const [result, subResult] = await Promise.all([
+    fetchProjects(token),
+    fetchCurrentSubscription(token),
+  ]);
   const projects: Project[] = result.ok ? result.data : [];
   const error = result.ok ? null : result.error;
+  const subscription = subResult.ok ? subResult.data : null;
 
   return (
     <>
@@ -29,9 +33,51 @@ export default async function Dashboard() {
         <div className="container">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
             <div>
-              <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 800, margin: "0 0 0.25rem" }}>
-                Olá{user?.firstName ? `, ${user.firstName}` : ""}
-              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+                <h1 style={{ fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 800, margin: 0 }}>
+                  Olá{user?.firstName ? `, ${user.firstName}` : ""}
+                </h1>
+                {subscription?.plan ? (
+                  <Link
+                    href="/dashboard/settings"
+                    style={{
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      color: "var(--cyan)",
+                      background: "rgba(6, 182, 212, 0.15)",
+                      padding: "0.25rem 0.7rem",
+                      borderRadius: "999px",
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    PLANO {PLAN_LABEL[subscription.plan].toUpperCase()}
+                    {subscription.quotaLimit && (
+                      <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                        {subscription.quotaUsed}/{subscription.quotaLimit}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  <Link
+                    href="/planos"
+                    style={{
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      color: "var(--orange)",
+                      background: "rgba(245, 158, 11, 0.12)",
+                      padding: "0.25rem 0.7rem",
+                      borderRadius: "999px",
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    SEM PLANO ATIVO →
+                  </Link>
+                )}
+              </div>
               <p style={{ color: "var(--text-muted)", margin: 0 }}>
                 {projects.length === 0
                   ? "Nenhum projeto ainda. Comece criando o primeiro."

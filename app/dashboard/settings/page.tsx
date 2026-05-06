@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BillingSection } from "@/components/BillingSection";
 import { SITE_URL } from "@/lib/site-config";
 import { fetchSettings, updateSettings, type RegimeTributario } from "@/lib/api";
 
@@ -124,6 +125,12 @@ export default async function SettingsPage({
                 {decodeURIComponent(error)}
               </div>
             )}
+
+            <div style={{ marginBottom: "2rem" }}>
+              <BillingSection />
+            </div>
+
+            <hr style={{ border: "none", borderTop: "1px solid var(--border-strong)", margin: "0 0 2rem" }} />
 
             <form action={updateSettingsAction} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <Section title="Identificação">
