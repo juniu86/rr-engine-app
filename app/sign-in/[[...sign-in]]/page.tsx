@@ -3,6 +3,7 @@ import { SignIn } from "@clerk/nextjs";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/site-config";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -29,6 +30,7 @@ export default function SignInPage() {
           routing="path"
           signUpUrl="/sign-up"
           fallbackRedirectUrl="/dashboard"
+          appearance={clerkAppearance}
         />
       </main>
       <Footer />
