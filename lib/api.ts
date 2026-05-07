@@ -1,136 +1,35 @@
 /**
- * Cliente HTTP minimalista pro backend rr-engine (Express + tRPC) no Railway.
+ * Cliente tipado pro backend rr-engine (Express + tRPC) no Railway.
  *
- * Usa fetch nativo + Authorization Bearer com token do Clerk. Sem dependência
- * de @trpc/client por agora — vamos adicionar quando o frontend começar a
- * chamar muitos endpoints (avaliação Sprint 5).
+ * P3: usa cliente tRPC tipado contra `AppRouter` exportado via
+ * `@juniu86/rr-engine-api-types`. Paths validados em compile-time.
+ * Typo vira erro de TypeScript, não 404 em runtime.
  *
  * Variável de ambiente: NEXT_PUBLIC_API_URL (ex: https://api.rres.com.br)
  */
 
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@juniu86/rr-engine-api-types";
+import { createTrpcClient } from "./trpc-client";
+import { safeCall, type Result } from "./trpc-result";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.rres.com.br";
 
-export type ApiResponse<T> =
-  | { ok: true; data: T }
-  | { ok: false; status: number; error: string };
+/**
+ * Tipos derivados automaticamente do backend via AppRouter.
+ * Resolve divergência entre tipo manual no front e shape real do backend.
+ */
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+type RouterInputs = inferRouterInputs<AppRouter>;
 
-/* ============================================================
- * Core helpers — query (GET) e mutation (POST) tRPC v11
- * ============================================================ */
+// Re-export pra consumidores que importavam Result direto deste módulo.
+export type { Result };
 
 /**
- * Backend usa superjson como transformer. Inputs precisam estar envelopados
- * em `{ json: <value> }` tanto em GET (querystring) quanto POST (body).
- * Outputs também vem envelopados — desempacotamos `data.json ?? data`.
+ * Mantido pra retrocompatibilidade — alguns consumidores tipam parâmetros
+ * como `ApiResponse<T>`. É o mesmo `Result<T>` debaixo dos panos.
  */
-
-async function callTrpcQuery<T>(
-  procedure: string,
-  input: unknown | undefined,
-  token: string | null
-): Promise<ApiResponse<T>> {
-  const url = new URL(`${API_URL}/api/trpc/${procedure}`);
-  // tRPC superjson: envelopa input em { json: <value> }, mesmo quando undefined.
-  url.searchParams.set("input", JSON.stringify({ json: input ?? null }));
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers.authorization = `Bearer ${token}`;
-
-  let res: Response;
-  try {
-    res = await fetch(url.toString(), {
-      method: "GET",
-      headers,
-      cache: "no-store",
-    });
-  } catch (err) {
-    return {
-      ok: false,
-      status: 0,
-      error: `Erro de rede: ${(err as Error).message}`,
-    };
-  }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    return {
-      ok: false,
-      status: res.status,
-      error: parseTrpcError(text) || `HTTP ${res.status}`,
-    };
-  }
-
-  const body = await res.json().catch(() => null);
-  const data = unwrapTrpcData(body);
-  return { ok: true, data: data as T };
-}
-
-async function callTrpcMutation<T>(
-  procedure: string,
-  input: unknown,
-  token: string | null
-): Promise<ApiResponse<T>> {
-  const url = `${API_URL}/api/trpc/${procedure}`;
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers.authorization = `Bearer ${token}`;
-
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers,
-      // tRPC superjson exige body envelopado em { json: <value> }.
-      body: JSON.stringify({ json: input }),
-      cache: "no-store",
-    });
-  } catch (err) {
-    return {
-      ok: false,
-      status: 0,
-      error: `Erro de rede: ${(err as Error).message}`,
-    };
-  }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    return {
-      ok: false,
-      status: res.status,
-      error: parseTrpcError(text) || `HTTP ${res.status}`,
-    };
-  }
-
-  const body = await res.json().catch(() => null);
-  const data = unwrapTrpcData(body);
-  return { ok: true, data: data as T };
-}
-
-/**
- * Resposta tRPC superjson: { result: { data: { json: <T>, meta?: ... } } }
- * Se sem superjson server-side: { result: { data: <T> } }
- * Aceitamos os dois formatos.
- */
-function unwrapTrpcData(body: unknown): unknown {
-  const data = (body as { result?: { data?: unknown } } | null)?.result?.data;
-  if (data && typeof data === "object" && "json" in data) {
-    return (data as { json: unknown }).json;
-  }
-  return data;
-}
-
-function parseTrpcError(text: string): string | null {
-  try {
-    const parsed = JSON.parse(text);
-    return parsed?.error?.json?.message || null;
-  } catch {
-    return null;
-  }
-}
+export type ApiResponse<T> = Result<T>;
 
 /* ============================================================
  * Healthcheck — não-tRPC, rota direta
@@ -167,7 +66,8 @@ export type User = {
 };
 
 export async function fetchMe(token: string | null) {
-  return callTrpcQuery<User | null>("auth.me", undefined, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.auth.me.query());
 }
 
 /* ============================================================
@@ -186,41 +86,20 @@ export type ProjectStatus =
 
 export type ContractType = "manutencao" | "obra";
 
-export type Project = {
-  id: number;
-  userId: number;
-  name: string;
-  description: string | null;
-  contractType: ContractType;
-  location: string | null;
-  restrictions: string | null;
-  memorialDescritivo: string | null;
-  memorialFileUrl: string | null;
-  status: ProjectStatus;
-  blockReason: string | null;
-  warningMessages: string | null;
-  currentAgentId: number | null;
-  totalCostDirect: string | null;
-  totalCostIndirect: string | null;
-  totalTaxes: string | null;
-  totalBdi: string | null;
-  totalPrice: string | null;
-  estimatedDuration: number | null;
-  parentProjectId: number | null;
-  revisionNumber: number | null;
-  originalName: string | null;
-  bdiPercentual: string | null;
-  bdiPreset: "padrao" | "reduzido" | "majorado" | "personalizado" | null;
-  createdAt: string;
-  updatedAt: string;
-};
+/**
+ * Derivado do AppRouter do backend via inferRouterOutputs. Qualquer mudança
+ * no shape lá reflete aqui automaticamente em compile-time.
+ */
+export type Project = RouterOutputs["project"]["get"];
 
 export async function fetchProjects(token: string | null) {
-  return callTrpcQuery<Project[]>("project.list", undefined, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.list.query());
 }
 
 export async function fetchProject(id: number, token: string | null) {
-  return callTrpcQuery<Project>("project.get", { id }, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.get.query({ id }));
 }
 
 export type CreateProjectInput = {
@@ -236,11 +115,8 @@ export async function createProject(
   input: CreateProjectInput,
   token: string | null
 ) {
-  return callTrpcMutation<{ projectId: number }>(
-    "project.create",
-    input,
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.create.mutate(input));
 }
 
 export type UpdateProjectInput = {
@@ -257,15 +133,13 @@ export async function updateProject(
   input: UpdateProjectInput,
   token: string | null
 ) {
-  return callTrpcMutation<{ success: true }>("project.update", input, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.update.mutate(input));
 }
 
 export async function deleteProject(id: number, token: string | null) {
-  return callTrpcMutation<{ success: true }>(
-    "project.delete",
-    { id },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.delete.mutate({ id }));
 }
 
 /* ============================================================
@@ -387,58 +261,37 @@ export async function applyAuditCorrections(
   logisticsToRemove: string[],
   token: string | null
 ) {
-  return callTrpcMutation<{
-    success: true;
-    budgetRemoved: number;
-    logisticsRemoved: number;
-    correctedDirectCost: number;
-    correctedLogisticsCost: number;
-    correctedFinalPrice: number;
-  }>(
-    // Procedure mora no router `agent` no backend, não em `project`.
-    "agent.applyAuditCorrections",
-    { projectId, budgetItemsToRemove, logisticsToRemove },
-    token
+  const trpc = createTrpcClient(token);
+  return safeCall(() =>
+    trpc.agent.applyAuditCorrections.mutate({
+      projectId,
+      budgetItemsToRemove,
+      logisticsToRemove,
+    })
   );
 }
 
-export type AgentExecution = {
-  id: number;
-  projectId: number;
-  agentType: AgentType;
-  agentOrder: number;
-  status: AgentStatus;
-  output: unknown;
-  error: string | null;
-  tokensUsed: number | null;
-  missingInfoRequests: MissingInfoRequest[] | null;
-  userResponses: Record<string, string | number> | null;
-  iterationCount: number | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-};
+export type AgentExecution = RouterOutputs["agent"]["getExecutions"][number];
 
 export async function fetchAgentList(token: string | null) {
-  return callTrpcQuery<AgentDefinition[]>("agent.list", undefined, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.agent.list.query());
 }
 
 export async function fetchAgentExecutions(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcQuery<AgentExecution[]>(
-    "agent.getExecutions",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.agent.getExecutions.query({ projectId }));
 }
 
 export async function executeAllAgents(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcMutation<unknown>("agent.executeAll", { projectId }, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.agent.executeAll.mutate({ projectId }));
 }
 
 export async function executeSingleAgent(
@@ -446,10 +299,9 @@ export async function executeSingleAgent(
   agentType: AgentType,
   token: string | null
 ) {
-  return callTrpcMutation<unknown>(
-    "agent.execute",
-    { projectId, agentType },
-    token
+  const trpc = createTrpcClient(token);
+  return safeCall(() =>
+    trpc.agent.execute.mutate({ projectId, agentType })
   );
 }
 
@@ -463,10 +315,13 @@ export async function continueAgent(
   userResponses: Record<string, string | number>,
   token: string | null
 ) {
-  return callTrpcMutation<unknown>(
-    "agent.continueAgent",
-    { projectId, agentType, userResponses },
-    token
+  const trpc = createTrpcClient(token);
+  return safeCall(() =>
+    trpc.agent.continueAgent.mutate({
+      projectId,
+      agentType,
+      userResponses,
+    })
   );
 }
 
@@ -500,63 +355,32 @@ export type RegimeTributario =
   | "lucro_presumido"
   | "lucro_real";
 
-export type CompanySettings = {
-  id: number;
-  userId: number;
-  companyName: string | null;
-  cnpj: string | null;
-  priceRegion: string | null;
-  taxaLeisSociais: string | null;
-  bdiPercentual: string | null;
-  lucroPercentual: string | null;
-  issPercentual: string | null;
-  pisPercentual: string | null;
-  cofinsPercentual: string | null;
-  irpjPercentual: string | null;
-  csllPercentual: string | null;
-  adminCentralPercentual: string | null;
-  despesasFinanceirasPercentual: string | null;
-  riscosPercentual: string | null;
-  regimeTributario: RegimeTributario | null;
-  faixaSimples: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type CompanySettings = RouterOutputs["settings"]["get"];
 
 export async function fetchSettings(token: string | null) {
-  return callTrpcQuery<CompanySettings>("settings.get", undefined, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.settings.get.query());
 }
 
-export type UpdateSettingsInput = Partial<
-  Omit<
-    CompanySettings,
-    "id" | "userId" | "createdAt" | "updatedAt"
-  >
->;
+export type UpdateSettingsInput = RouterInputs["settings"]["update"];
 
 export async function updateSettings(
   input: UpdateSettingsInput,
   token: string | null
 ) {
-  return callTrpcMutation<CompanySettings>("settings.update", input, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.settings.update.mutate(input));
 }
 
 /* ============================================================
  * Project revisions
  * ============================================================ */
 
-export type RevisionInfo = {
-  original: Project | null;
-  revisions: Project[];
-  currentRevisionNumber: number;
-};
+export type RevisionInfo = RouterOutputs["project"]["getRevisions"];
 
 export async function fetchRevisions(projectId: number, token: string | null) {
-  return callTrpcQuery<RevisionInfo>(
-    "project.getRevisions",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.project.getRevisions.query({ projectId }));
 }
 
 export async function createRevision(
@@ -564,14 +388,12 @@ export async function createRevision(
   newMemorialDescritivo: string,
   token: string | null
 ) {
-  return callTrpcMutation<{
-    success: true;
-    newProjectId: number;
-    message: string;
-  }>(
-    "project.createRevision",
-    { projectId, newMemorialDescritivo },
-    token
+  const trpc = createTrpcClient(token);
+  return safeCall(() =>
+    trpc.project.createRevision.mutate({
+      projectId,
+      newMemorialDescritivo,
+    })
   );
 }
 
@@ -589,44 +411,32 @@ export type GeneratedDocument = {
 };
 
 export async function fetchDocuments(projectId: number, token: string | null) {
-  return callTrpcQuery<GeneratedDocument[]>(
-    "document.list",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.document.list.query({ projectId }));
 }
 
 export async function generateProposal(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcMutation<{ url: string; key?: string }>(
-    "document.generateProposal",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.document.generateProposal.mutate({ projectId }));
 }
 
 export async function generateMemoria(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcMutation<{ url: string; key?: string }>(
-    "document.generateMemoria",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.document.generateMemoria.mutate({ projectId }));
 }
 
 export async function generateSchedule(
   projectId: number,
   token: string | null
 ) {
-  return callTrpcMutation<{ url: string; key?: string }>(
-    "document.generateSchedule",
-    { projectId },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.document.generateSchedule.mutate({ projectId }));
 }
 
 /* ============================================================
@@ -635,59 +445,68 @@ export async function generateSchedule(
 
 export type PlanTier = "starter" | "pro" | "business";
 
-export type Plan = {
-  tier: PlanTier;
-  name: string;
-  priceMonthly: number;
-  currency: "BRL";
-  quota: number | null;
-  cap: number | null;
-  priceId: string;
-};
+export type Plan = RouterOutputs["stripe"]["listPlans"][number];
 
-export type Subscription = {
-  plan: PlanTier | null;
-  status: string;
-  currentPeriodEnd: string | null;
-  quotaUsed: number;
-  quotaLimit: number | null;
-  obraValueCap: number | null;
+/**
+ * Subscription do backend + campos opcionais que a UI usa mas que ainda
+ * não estão no contrato da procedure (TODO backend: incluir
+ * `cancelAtPeriodEnd` no retorno do `stripe.getCurrentSubscription`).
+ */
+export type Subscription = NonNullable<
+  RouterOutputs["stripe"]["getCurrentSubscription"]
+> & {
   cancelAtPeriodEnd?: boolean;
 };
 
+/**
+ * Tier "amplo" do plan: backend pode retornar tiers fora do PlanTier
+ * canônico (ex: "mensal", "avulso", "free"). Usado em UI defensiva.
+ */
+export type SubscriptionPlanTier = Subscription["plan"];
+
 export async function fetchPlans(token: string | null) {
-  return callTrpcQuery<Plan[]>("stripe.listPlans", undefined, token);
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.stripe.listPlans.query());
 }
 
 export async function fetchCurrentSubscription(token: string | null) {
-  return callTrpcQuery<Subscription | null>(
-    "stripe.getCurrentSubscription",
-    undefined,
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.stripe.getCurrentSubscription.query());
 }
 
 export async function createCheckout(tier: PlanTier, token: string | null) {
-  return callTrpcMutation<{ sessionId: string; url: string }>(
-    "stripe.createCheckout",
-    { tier },
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.stripe.createCheckout.mutate({ tier }));
 }
 
 export async function cancelSubscription(token: string | null) {
-  return callTrpcMutation<{ success: true; cancelAt: string }>(
-    "stripe.cancelSubscription",
-    undefined,
-    token
-  );
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.stripe.cancelSubscription.mutate());
 }
 
-export const PLAN_LABEL: Record<PlanTier, string> = {
+const PLAN_LABEL_BASE: Record<PlanTier, string> = {
   starter: "Starter",
   pro: "Pro",
   business: "Business",
 };
+
+/**
+ * Mantido como Record só pros 3 tiers comerciais. Componentes devem
+ * preferir `getPlanLabel(plan)` que cobre tiers extras do backend
+ * (mensal, avulso, free).
+ */
+export const PLAN_LABEL = PLAN_LABEL_BASE;
+
+/**
+ * Resolve label do plano de forma defensiva — backend pode retornar tiers
+ * fora do PlanTier canônico (ex: "free", "mensal"). Cai pro nome cru em
+ * uppercase quando não há tradução.
+ */
+export function getPlanLabel(plan: SubscriptionPlanTier | null | undefined): string {
+  if (!plan) return "";
+  if (plan in PLAN_LABEL_BASE) return PLAN_LABEL_BASE[plan as PlanTier];
+  return String(plan).toUpperCase();
+}
 
 export const PLAN_TAGLINE: Record<PlanTier, string> = {
   starter: "Pra quem está começando",

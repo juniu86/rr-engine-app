@@ -5,11 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PlanosCheckout } from "@/components/PlanosCheckout";
 import { SITE_URL } from "@/lib/site-config";
-import {
-  fetchPlans,
-  fetchCurrentSubscription,
-  type Plan,
-} from "@/lib/api";
+import { fetchPlans, fetchCurrentSubscription } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Planos — RR Engine",
@@ -33,7 +29,7 @@ export default async function Planos({
     isSignedIn ? fetchCurrentSubscription(token) : Promise.resolve(null),
   ]);
 
-  const plans: Plan[] = plansResult.ok ? plansResult.data : [];
+  const plans = plansResult.ok ? plansResult.data : [];
   const currentSub = subResult && "ok" in subResult && subResult.ok ? subResult.data : null;
 
   return (
