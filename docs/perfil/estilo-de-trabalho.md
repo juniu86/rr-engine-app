@@ -57,6 +57,21 @@ Toda resposta técnica vem de **documentação oficial, fonte confiável, norma 
 
 **Quando o usuário corrige uma afirmação minha:** não defendo o erro. Reconheço, busco a fonte certa, refaço a resposta com base nela.
 
+## Confirmar paths de procedure antes de chamar
+
+**Antes de adicionar qualquer chamada tRPC nova no frontend, confirmar o path exato no `server/routers.ts` do backend via grep.** Não presumir pelo nome semântico. Não inferir pelo papel da procedure.
+
+Exemplo do erro a evitar (07/05/2026): assumi que `applyAuditCorrections` estava no router `project` por ser ação sobre projeto. Estava no router `agent`. Resultado: 404 em produção, debug de ~1h, deploy de cache busting desnecessário. Custo: tempo + tokens.
+
+Aplicação prática: antes de escrever `callTrpcMutation("X.Y", ...)` ou `trpc.X.Y.useMutation()`, rodar:
+
+```bash
+grep -n "Y:" server/routers.ts   # confirma a procedure existe
+grep -nB 200 "Y:" server/routers.ts | grep "router({" | tail -1   # confirma em qual router está
+```
+
+Mesma regra vale pra renomear/mover procedures: se mover de um router pra outro, atualizar o frontend antes de mergear.
+
 ## Critique antes de copiar
 
 Quando eu mando referência (print, link, doc), **não copia cegamente**. Analisa criticamente:
