@@ -208,19 +208,22 @@ body {
   color: var(--text);
 }
 
-.nav-cta {
+/* Especificidade reforçada — `.site-header nav a` tinha specificity maior que `.nav-cta` */
+.site-header nav a.nav-cta {
   background: var(--accent);
   color: #fff !important;
   padding: 0.55rem 1.1rem;
   border-radius: var(--radius-sm);
   font-weight: 600;
+  border: 1px solid transparent;
 }
 
-.nav-cta:hover {
+.site-header nav a.nav-cta:hover {
   background: var(--accent-hover);
+  color: #fff !important;
 }
 
-.nav-login {
+.site-header nav a.nav-login {
   color: var(--text) !important;
   padding: 0.55rem 1.1rem;
   border-radius: var(--radius-sm);
@@ -229,9 +232,10 @@ body {
   transition: all 0.15s;
 }
 
-.nav-login:hover {
+.site-header nav a.nav-login:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--accent);
+  color: var(--text) !important;
 }
 
 /* HERO */
