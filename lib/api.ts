@@ -310,15 +310,48 @@ export type AuditorValidation = {
   recommendation?: string;
 };
 
-export type AuditorCorrectionItem = {
-  description: string;
-  totalCost?: number;
-  reason?: string;
-};
+/**
+ * Item de correção do Auditor.
+ * Backend evoluiu de string simples (descrição da linha a remover) pra
+ * objeto enriquecido com motivo e impacto. Mantemos os 3 formatos por
+ * retrocompatibilidade com projetos antigos:
+ *   - string (formato legado)
+ *   - { description, totalCost?, reason? } (formato intermediário)
+ *   - { description, reason?, estimatedImpact? } (formato atual, PR #24)
+ */
+export type AuditorCorrectionItem =
+  | string
+  | {
+      description: string;
+      reason?: string;
+      estimatedImpact?: number;
+      /** Alias legado de estimatedImpact. */
+      totalCost?: number;
+    };
+
+export function getCorrectionDescription(
+  item: AuditorCorrectionItem
+): string {
+  return typeof item === "string" ? item : item.description;
+}
+
+export function getCorrectionImpact(
+  item: AuditorCorrectionItem
+): number | null {
+  if (typeof item === "string") return null;
+  return item.estimatedImpact ?? item.totalCost ?? null;
+}
+
+export function getCorrectionReason(
+  item: AuditorCorrectionItem
+): string | null {
+  if (typeof item === "string") return null;
+  return item.reason ?? null;
+}
 
 export type AuditorCorrections = {
-  budgetItemsToRemove?: string[]; // descrições das linhas a remover
-  logisticsToRemove?: string[];
+  budgetItemsToRemove?: AuditorCorrectionItem[];
+  logisticsToRemove?: AuditorCorrectionItem[];
   totalImpact?: number;
   correctedDirectCost?: number;
   correctedLogisticsCost?: number;

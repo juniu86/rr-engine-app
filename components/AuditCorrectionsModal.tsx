@@ -6,7 +6,11 @@ import { useAuth } from "@clerk/nextjs";
 import {
   fetchAgentExecutions,
   applyAuditCorrections,
+  getCorrectionDescription,
+  getCorrectionImpact,
+  getCorrectionReason,
   type AgentExecution,
+  type AuditorCorrectionItem,
   type AuditorOutput,
 } from "@/lib/api";
 
@@ -85,10 +89,14 @@ export function AuditCorrectionsModal({
     setSubmitting(true);
     setError(null);
     const token = await getToken();
+    // Backend espera array de descrições (strings). Extrai do formato
+    // novo (objeto enriquecido) ou usa direto se for o formato antigo.
+    const budgetDescriptions = budgetItems.map(getCorrectionDescription);
+    const logisticsDescriptions = logisticsItems.map(getCorrectionDescription);
     const res = await applyAuditCorrections(
       projectId,
-      budgetItems,
-      logisticsItems,
+      budgetDescriptions,
+      logisticsDescriptions,
       token
     );
     setSubmitting(false);
@@ -160,16 +168,16 @@ export function AuditCorrectionsModal({
 
         {budgetItems.length > 0 && (
           <Section title={`Itens de orçamento (${budgetItems.length})`}>
-            {budgetItems.map((desc, idx) => (
-              <ItemRow key={`b-${idx}`} description={desc} />
+            {budgetItems.map((item, idx) => (
+              <ItemRow key={`b-${idx}`} item={item} />
             ))}
           </Section>
         )}
 
         {logisticsItems.length > 0 && (
           <Section title={`Itens de logística (${logisticsItems.length})`}>
-            {logisticsItems.map((desc, idx) => (
-              <ItemRow key={`l-${idx}`} description={desc} />
+            {logisticsItems.map((item, idx) => (
+              <ItemRow key={`l-${idx}`} item={item} />
             ))}
           </Section>
         )}
@@ -232,7 +240,13 @@ function Section({
   );
 }
 
-function ItemRow({ description }: { description: string }) {
+function ItemRow({ item }: { item: AuditorCorrectionItem }) {
+  // Aceita string (formato legado) ou objeto enriquecido. Helpers cobrem
+  // estimatedImpact (atual) e totalCost (intermediário).
+  const description = getCorrectionDescription(item);
+  const reason = getCorrectionReason(item);
+  const estimatedImpact = getCorrectionImpact(item);
+
   return (
     <div
       style={{
@@ -246,7 +260,32 @@ function ItemRow({ description }: { description: string }) {
         lineHeight: 1.5,
       }}
     >
-      {description}
+      <div>{description}</div>
+      {(reason || estimatedImpact != null) && (
+        <div
+          style={{
+            marginTop: "0.4rem",
+            fontSize: "0.8rem",
+            color: "var(--text-muted)",
+            display: "flex",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+          }}
+        >
+          {reason && <span>Motivo: {reason}</span>}
+          {estimatedImpact != null && (
+            <span>
+              Impacto estimado:{" "}
+              <strong style={{ color: "var(--orange)" }}>
+                {estimatedImpact.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+              </strong>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
