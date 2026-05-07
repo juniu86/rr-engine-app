@@ -4,7 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/site-config";
-import { fetchProjects, fetchCurrentSubscription, STATUS_LABEL, STATUS_COLOR, CONTRACT_TYPE_LABEL, PLAN_LABEL, type Project } from "@/lib/api";
+import { fetchProjects, fetchCurrentSubscription, STATUS_LABEL, STATUS_COLOR, CONTRACT_TYPE_LABEL, getPlanLabel, type Project } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -22,7 +22,7 @@ export default async function Dashboard() {
     fetchProjects(token),
     fetchCurrentSubscription(token),
   ]);
-  const projects: Project[] = result.ok ? result.data : [];
+  const projects = result.ok ? result.data : [];
   const error = result.ok ? null : result.error;
   const subscription = subResult.ok ? subResult.data : null;
 
@@ -52,7 +52,7 @@ export default async function Dashboard() {
                       letterSpacing: "0.02em",
                     }}
                   >
-                    PLANO {PLAN_LABEL[subscription.plan].toUpperCase()}
+                    PLANO {getPlanLabel(subscription.plan).toUpperCase()}
                     {subscription.quotaLimit && (
                       <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)", fontWeight: 500 }}>
                         {subscription.quotaUsed}/{subscription.quotaLimit}

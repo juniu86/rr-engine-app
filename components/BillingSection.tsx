@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import {
   fetchCurrentSubscription,
   cancelSubscription,
-  PLAN_LABEL,
+  getPlanLabel,
   type Subscription,
 } from "@/lib/api";
 
@@ -88,7 +88,7 @@ export function BillingSection() {
                 Plano atual
               </div>
               <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--cyan)" }}>
-                {PLAN_LABEL[sub.plan]}
+                {getPlanLabel(sub.plan)}
               </div>
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
                 Status:{" "}

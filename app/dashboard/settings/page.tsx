@@ -41,7 +41,13 @@ async function updateSettingsAction(formData: FormData) {
     {
       companyName: get("companyName"),
       cnpj: get("cnpj"),
-      priceRegion: get("priceRegion"),
+      // Backend espera enum estrito de UFs. Validação é só client-side
+      // até implementar Zod refine; cast pra desbloquear o TypeScript.
+      priceRegion: get("priceRegion") as
+        | "AC" | "AL" | "AP" | "AM" | "BA" | "CE" | "DF" | "ES" | "GO"
+        | "MA" | "MT" | "MS" | "MG" | "PA" | "PB" | "PR" | "PE" | "PI"
+        | "RJ" | "RN" | "RS" | "RO" | "RR" | "SC" | "SP" | "SE" | "TO"
+        | undefined,
       bdiPercentual: get("bdiPercentual"),
       regimeTributario: get("regimeTributario") as RegimeTributario | undefined,
       issPercentual: get("issPercentual"),

@@ -53,7 +53,10 @@ export function MissingInfoModal({ projectId, initialExecutions }: Props) {
   );
   if (!waitingExec) return null;
 
-  const requests: MissingInfoRequest[] = waitingExec.missingInfoRequests || [];
+  // Backend tipa missingInfoRequests como JSON unknown (Drizzle column).
+  // Validação de shape é responsabilidade do componente.
+  const requests = (waitingExec.missingInfoRequests ??
+    []) as MissingInfoRequest[];
   if (requests.length === 0) return null;
 
   async function handleSubmit(e: React.FormEvent) {
