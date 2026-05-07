@@ -395,7 +395,8 @@ export async function applyAuditCorrections(
     correctedLogisticsCost: number;
     correctedFinalPrice: number;
   }>(
-    "project.applyAuditCorrections",
+    // Procedure mora no router `agent` no backend, não em `project`.
+    "agent.applyAuditCorrections",
     { projectId, budgetItemsToRemove, logisticsToRemove },
     token
   );

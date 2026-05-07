@@ -23,7 +23,7 @@ interface Props {
 
 /**
  * Detecta duplicatas/sobreposições identificadas pelo Auditor e abre um
- * modal pro usuário autorizar a remoção. Aplica via project.applyAuditCorrections,
+ * modal pro usuário autorizar a remoção. Aplica via agent.applyAuditCorrections,
  * que remove as linhas, recalcula totais e atualiza o orçamento.
  *
  * Comportamento:
