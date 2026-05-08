@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import {
   fetchAgentExecutions,
   executeAllAgents,
+  cancelExecution,
   AGENT_LABEL,
   AGENT_STATUS_LABEL,
   AGENT_STATUS_COLOR,
@@ -38,6 +39,8 @@ export function AgentPipelineLive({ projectId, initialExecutions }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isStarting, setIsStarting] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Polling — só ativa quando há execução em andamento.
   const hasRunning = executions.some((e) => e.status === "running" || e.status === "pending");
@@ -71,6 +74,25 @@ export function AgentPipelineLive({ projectId, initialExecutions }: Props) {
     if (fresh.ok) setExecutions(fresh.data);
   }
 
+  async function handleCancel() {
+    setErrorMsg(null);
+    setIsCancelling(true);
+    const token = await getToken();
+    const res = await cancelExecution(projectId, token);
+    setIsCancelling(false);
+    setShowCancelModal(false);
+    if (!res.ok) {
+      setErrorMsg(res.error);
+      return;
+    }
+    const fresh = await fetchAgentExecutions(projectId, token);
+    if (fresh.ok) setExecutions(fresh.data);
+    // Recarrega a página pra refletir status do projeto no header (badge).
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }
+
   // Map por agentType pra acesso rápido.
   const byType = new Map<AgentType, AgentExecution>();
   for (const e of executions) byType.set(e.agentType, e);
@@ -85,11 +107,27 @@ export function AgentPipelineLive({ projectId, initialExecutions }: Props) {
         <h2 style={{ fontSize: "1.1rem", margin: 0, fontWeight: 700 }}>
           Pipeline de agentes
         </h2>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
           {anyRunning && (
-            <span style={{ fontSize: "0.85rem", color: "var(--cyan)" }}>
-              ● Atualizando a cada 5s
-            </span>
+            <>
+              <span style={{ fontSize: "0.85rem", color: "var(--cyan)" }}>
+                ● Atualizando a cada 5s
+              </span>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setShowCancelModal(true)}
+                disabled={isCancelling}
+                style={{
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.85rem",
+                  borderColor: "rgba(239, 68, 68, 0.5)",
+                  color: "var(--red)",
+                }}
+              >
+                Interromper
+              </button>
+            </>
           )}
           {!anyRunning && !allDone && (
             <button
@@ -183,6 +221,71 @@ export function AgentPipelineLive({ projectId, initialExecutions }: Props) {
       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "1rem", marginBottom: 0 }}>
         Cada agente é um modelo de IA especializado. O pipeline pode levar de 2 a 8 minutos dependendo do tamanho do memorial.
       </p>
+
+      {showCancelModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !isCancelling && setShowCancelModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            zIndex: 100,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass"
+            style={{
+              maxWidth: "480px",
+              width: "100%",
+              padding: "2rem",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: "0 0 0.75rem" }}>
+              Interromper execução?
+            </h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.5, margin: "0 0 0.75rem" }}>
+              O pipeline será abortado na próxima iteração. Os agentes já concluídos permanecem, mas o orçamento ficará marcado como cancelado.
+            </p>
+            <p style={{ color: "var(--orange)", fontSize: "0.85rem", lineHeight: 1.5, margin: "0 0 1.5rem" }}>
+              ⚠ A quota mensal não é devolvida — o orçamento já foi contado quando você criou o projeto.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setShowCancelModal(false)}
+                disabled={isCancelling}
+                style={{ padding: "0.5rem 1rem", fontSize: "0.9rem" }}
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={handleCancel}
+                disabled={isCancelling}
+                style={{
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.9rem",
+                  background: "var(--red)",
+                  color: "#fff",
+                  border: "none",
+                }}
+              >
+                {isCancelling ? "Interrompendo..." : "Sim, interromper"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
