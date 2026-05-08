@@ -108,6 +108,7 @@ export default async function ProjectDetails({
             {project.totalPrice && (
               <div style={{ paddingTop: "1.5rem", borderTop: "1px solid var(--border-strong)", display: "flex", gap: "2rem", flexWrap: "wrap" }}>
                 <Stat label="Custo direto" value={project.totalCostDirect} />
+                <Stat label="Logística" value={project.totalCostIndirect} />
                 <Stat label="BDI" value={project.totalBdi} />
                 <Stat label="Impostos" value={project.totalTaxes} />
                 <Stat label="Total" value={project.totalPrice} highlight />
