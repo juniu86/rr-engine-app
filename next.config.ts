@@ -13,7 +13,6 @@ const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
       // — não obrigatório, build funciona sem.
       silent: !process.env.CI,
       tunnelRoute: "/monitoring",
-      hideSourceMaps: true,
       disableLogger: true,
     })
   : nextConfig;

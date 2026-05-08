@@ -4,6 +4,8 @@
  *
  * Doc: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
+import * as Sentry from "@sentry/nextjs";
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
@@ -13,4 +15,5 @@ export async function register() {
   }
 }
 
-export { onRequestError } from "@sentry/nextjs";
+// Captura erros de Server Components, route handlers e server actions.
+export const onRequestError = Sentry.captureRequestError;
