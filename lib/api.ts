@@ -82,7 +82,8 @@ export type ProjectStatus =
   | "rejected"
   | "blocked"
   | "pending_confirmation"
-  | "waiting_for_input";
+  | "waiting_for_input"
+  | "cancelled";
 
 export type ContractType = "manutencao" | "obra";
 
@@ -165,7 +166,8 @@ export type AgentStatus =
   | "failed"
   | "skipped"
   | "waiting_for_user_input"
-  | "needs_review";
+  | "needs_review"
+  | "cancelled";
 
 export type AgentDefinition = {
   type: AgentType;
@@ -292,6 +294,19 @@ export async function executeAllAgents(
 ) {
   const trpc = createTrpcClient(token);
   return safeCall(() => trpc.agent.executeAll.mutate({ projectId }));
+}
+
+/**
+ * Interrompe a execução de um orçamento em andamento.
+ * Marca o projeto como `cancelled` e aborta o pipeline na próxima iteração.
+ * A quota mensal NÃO é devolvida.
+ */
+export async function cancelExecution(
+  projectId: number,
+  token: string | null
+) {
+  const trpc = createTrpcClient(token);
+  return safeCall(() => trpc.agent.cancelExecution.mutate({ projectId }));
 }
 
 export async function executeSingleAgent(
@@ -539,6 +554,7 @@ export const AGENT_STATUS_LABEL: Record<AgentStatus, string> = {
   skipped: "Pulado",
   waiting_for_user_input: "Aguardando dados",
   needs_review: "Precisa revisão",
+  cancelled: "Cancelado",
 };
 
 export const AGENT_STATUS_COLOR: Record<AgentStatus, string> = {
@@ -549,6 +565,7 @@ export const AGENT_STATUS_COLOR: Record<AgentStatus, string> = {
   skipped: "var(--text-muted)",
   waiting_for_user_input: "var(--orange)",
   needs_review: "var(--orange)",
+  cancelled: "var(--text-muted)",
 };
 
 /* ============================================================
@@ -564,6 +581,7 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = {
   blocked: "Bloqueado",
   pending_confirmation: "Aguardando confirmação",
   waiting_for_input: "Aguardando dados",
+  cancelled: "Cancelado",
 };
 
 export const STATUS_COLOR: Record<ProjectStatus, string> = {
@@ -575,6 +593,7 @@ export const STATUS_COLOR: Record<ProjectStatus, string> = {
   blocked: "var(--red)",
   pending_confirmation: "var(--orange)",
   waiting_for_input: "var(--orange)",
+  cancelled: "var(--text-muted)",
 };
 
 export const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {

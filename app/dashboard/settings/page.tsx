@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BillingSection } from "@/components/BillingSection";
+import { BdiSettingsForm } from "@/components/BdiSettingsForm";
 import { SITE_URL } from "@/lib/site-config";
-import { fetchSettings, updateSettings, type RegimeTributario } from "@/lib/api";
+import { fetchSettings, updateSettings } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Configurações",
@@ -19,12 +20,6 @@ const ESTADOS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
   "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
   "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-];
-
-const REGIMES: { value: RegimeTributario; label: string }[] = [
-  { value: "simples_nacional", label: "Simples Nacional" },
-  { value: "lucro_presumido", label: "Lucro Presumido" },
-  { value: "lucro_real", label: "Lucro Real" },
 ];
 
 async function updateSettingsAction(formData: FormData) {
@@ -48,16 +43,6 @@ async function updateSettingsAction(formData: FormData) {
         | "MA" | "MT" | "MS" | "MG" | "PA" | "PB" | "PR" | "PE" | "PI"
         | "RJ" | "RN" | "RS" | "RO" | "RR" | "SC" | "SP" | "SE" | "TO"
         | undefined,
-      bdiPercentual: get("bdiPercentual"),
-      regimeTributario: get("regimeTributario") as RegimeTributario | undefined,
-      issPercentual: get("issPercentual"),
-      pisPercentual: get("pisPercentual"),
-      cofinsPercentual: get("cofinsPercentual"),
-      irpjPercentual: get("irpjPercentual"),
-      csllPercentual: get("csllPercentual"),
-      adminCentralPercentual: get("adminCentralPercentual"),
-      lucroPercentual: get("lucroPercentual"),
-      riscosPercentual: get("riscosPercentual"),
     },
     token
   );
@@ -151,46 +136,33 @@ export default async function SettingsPage({
                 </Select>
               </Section>
 
-              <Section title="Regime tributário">
-                <Select label="Regime" name="regimeTributario" defaultValue={s?.regimeTributario || ""}>
-                  <option value="">— selecione —</option>
-                  {REGIMES.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </Select>
-                <Hint>
-                  Em <strong>Simples Nacional</strong> a alíquota é definida pela faixa de receita (configurável depois). Em <strong>Lucro Presumido</strong> e <strong>Lucro Real</strong>, preencha as alíquotas abaixo.
-                </Hint>
-              </Section>
-
-              <Section title="Impostos (% sobre faturamento)">
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
-                  <Input label="ISS" name="issPercentual" type="number" step="0.01" defaultValue={s?.issPercentual || ""} placeholder="5.00" />
-                  <Input label="PIS" name="pisPercentual" type="number" step="0.01" defaultValue={s?.pisPercentual || ""} placeholder="0.65" />
-                  <Input label="COFINS" name="cofinsPercentual" type="number" step="0.01" defaultValue={s?.cofinsPercentual || ""} placeholder="3.00" />
-                  <Input label="IRPJ" name="irpjPercentual" type="number" step="0.01" defaultValue={s?.irpjPercentual || ""} placeholder="1.20" />
-                  <Input label="CSLL" name="csllPercentual" type="number" step="0.01" defaultValue={s?.csllPercentual || ""} placeholder="1.08" />
-                </div>
-              </Section>
-
-              <Section title="BDI e composição">
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
-                  <Input label="BDI total (%)" name="bdiPercentual" type="number" step="0.01" defaultValue={s?.bdiPercentual || "25.00"} placeholder="25.00" />
-                  <Input label="Lucro (%)" name="lucroPercentual" type="number" step="0.01" defaultValue={s?.lucroPercentual || ""} placeholder="8.00" />
-                  <Input label="Admin central (%)" name="adminCentralPercentual" type="number" step="0.01" defaultValue={s?.adminCentralPercentual || ""} placeholder="4.00" />
-                  <Input label="Riscos (%)" name="riscosPercentual" type="number" step="0.01" defaultValue={s?.riscosPercentual || ""} placeholder="1.50" />
-                </div>
-                <Hint>
-                  BDI = (1+despesas indiretas) × (1+lucro+riscos) ÷ (1−impostos) − 1. Default 25% serve pra obras médias; ajuste conforme seu modelo comercial.
-                </Hint>
-              </Section>
-
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  Salvar configurações
+                  Salvar identificação
                 </button>
               </div>
             </form>
+
+            <hr style={{ border: "none", borderTop: "1px solid var(--border-strong)", margin: "2rem 0" }} />
+
+            <BdiSettingsForm
+              initial={{
+                regimeTributario: s?.regimeTributario,
+                faixaSimples: s?.faixaSimples,
+                issPercentual: s?.issPercentual,
+                pisPercentual: s?.pisPercentual,
+                cofinsPercentual: s?.cofinsPercentual,
+                irpjPercentual: s?.irpjPercentual,
+                csllPercentual: s?.csllPercentual,
+                lucroPercentual: s?.lucroPercentual,
+                adminCentralPercentual: s?.adminCentralPercentual,
+                despesasFinanceirasPercentual: s?.despesasFinanceirasPercentual,
+                riscosPercentual: s?.riscosPercentual,
+                seguroPercentual: (s as any)?.seguroPercentual,
+                garantiaPercentual: (s as any)?.garantiaPercentual,
+                aliquotaTributosOverride: (s as any)?.aliquotaTributosOverride,
+              }}
+            />
           </div>
         </div>
       </main>
