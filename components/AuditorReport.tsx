@@ -38,11 +38,32 @@ export function AuditorReport({ output }: Props) {
   if (!output || !output.auditSeal) return null;
 
   const seal = SEAL_INFO[output.auditSeal];
+
+  // PR5c: validações relacionadas a sobreposição/duplicação já têm
+  // tratamento dedicado no AuditCorrectionsModal — não duplicar na lista
+  // crua. Filtramos esses casos pra deixar o relatório limpo, mostrando
+  // só validações que o usuário precisa de fato olhar aqui (margem,
+  // consistência de preço, cash flow etc).
+  const isOverlapRule = (v: { rule?: string; description?: string }) => {
+    const text = `${v.rule ?? ""} ${v.description ?? ""}`.toLowerCase();
+    return /overlap|sobrepo|duplic/.test(text);
+  };
+  const correctionsCount =
+    (output.corrections?.budgetItemsToRemove?.length ?? 0) +
+    (output.corrections?.logisticsToRemove?.length ?? 0);
+  const hasCorrections = correctionsCount > 0;
+
   const failed = (output.validations || []).filter((v) => !v.passed);
+  const failedShown = hasCorrections
+    ? failed.filter((v) => !isOverlapRule(v))
+    : failed;
+  const hiddenOverlapCount = hasCorrections
+    ? failed.filter(isOverlapRule).length
+    : 0;
   const grouped = {
-    critical: failed.filter((v) => v.severity === "critical"),
-    warning: failed.filter((v) => v.severity === "warning"),
-    info: failed.filter((v) => v.severity === "info"),
+    critical: failedShown.filter((v) => v.severity === "critical"),
+    warning: failedShown.filter((v) => v.severity === "warning"),
+    info: failedShown.filter((v) => v.severity === "info"),
   };
 
   return (
@@ -118,7 +139,28 @@ export function AuditorReport({ output }: Props) {
         </p>
       )}
 
-      {failed.length === 0 ? (
+      {hiddenOverlapCount > 0 && (
+        <div
+          style={{
+            padding: "0.75rem 1rem",
+            marginBottom: "1rem",
+            background: "rgba(245, 158, 11, 0.06)",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
+            borderLeft: "3px solid var(--orange)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "0.9rem",
+            color: "var(--text-secondary)",
+            lineHeight: 1.5,
+          }}
+        >
+          {hiddenOverlapCount}{" "}
+          {hiddenOverlapCount > 1 ? "sobreposições foram identificadas" : "sobreposição foi identificada"}{" "}
+          no orçamento. Use o modal de correção (abre acima desta seção){" "}
+          pra revisar e remover.
+        </div>
+      )}
+
+      {failedShown.length === 0 ? (
         <p
           style={{
             color: "var(--green)",
@@ -131,7 +173,9 @@ export function AuditorReport({ output }: Props) {
             textAlign: "center",
           }}
         >
-          Todas as {(output.validations || []).length} validações passaram sem ressalvas.
+          {hiddenOverlapCount > 0
+            ? "Demais validações passaram sem ressalvas."
+            : `Todas as ${(output.validations || []).length} validações passaram sem ressalvas.`}
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
