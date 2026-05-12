@@ -8,16 +8,16 @@ import {
 } from "@/lib/api";
 
 /**
- * Composição do BDI pela fórmula NBR 12721:
+ * Composição do BDI pela fórmula "tudo por dentro":
  *
- *   BDI = ((1 + AC + S + R + G) × (1 + DF) × (1 + L)) / (1 − I) − 1
+ *   PV = Custo / (1 − L − AC − DF − R − S − G − I)
+ *   BDI = totalRate / (1 − totalRate),  totalRate = L+AC+DF+R+S+G+I
  *
- * O campo "BDI total" não é editável — é derivado dos componentes em
- * tempo real. Aumentar Lucro deve refletir no BDI total automaticamente.
+ * Cada componente é percentual do **preço de venda**, não do custo.
+ * O campo "BDI total" não é editável — é derivado em tempo real.
  *
- * Tributos por dentro: o I entra no denominador, garantindo que o
- * preço final cobre o imposto recolhido pela empresa sem comer da
- * margem. Cliente paga preço cheio.
+ * Gate: se a soma dos componentes ≥ 95%, o BDI não é viável e o
+ * cálculo do backend lança erro. Aqui exibimos "—" e um aviso.
  */
 
 const REGIMES: { value: RegimeTributario; label: string }[] = [
@@ -133,8 +133,10 @@ export function BdiSettingsForm({ initial }: { initial: InitialValues }) {
     const dfRate = num(df) / 100;
     const l = num(lucro) / 100;
     const i = aliquotaResolvida.rate / 100;
-    if (i >= 1) return null; // inviável
-    const bdi = ((1 + ac + s + r + g) * (1 + dfRate) * (1 + l)) / (1 - i) - 1;
+    const totalRate = l + ac + dfRate + r + s + g + i;
+    // Gate igual ao backend: soma ≥ 95% é inviável.
+    if (totalRate >= 0.95) return null;
+    const bdi = totalRate / (1 - totalRate);
     return bdi * 100;
   }, [admin, seguros, riscos, garantias, df, lucro, aliquotaResolvida]);
 
@@ -249,7 +251,7 @@ export function BdiSettingsForm({ initial }: { initial: InitialValues }) {
         </Hint>
       </Section>
 
-      <Section title="Componentes do BDI (NBR 12721)">
+      <Section title="Componentes do BDI (% sobre preço de venda)">
         <div
           style={{
             display: "grid",
@@ -301,20 +303,23 @@ export function BdiSettingsForm({ initial }: { initial: InitialValues }) {
         >
           <div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-              BDI total (NBR 12721)
+              BDI total (tudo por dentro)
             </div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--cyan)" }}>
               {bdiTotal != null ? `${bdiTotal.toFixed(2)}%` : "—"}
             </div>
           </div>
-          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "right", maxWidth: "260px" }}>
-            BDI = ((1 + AC + S + R + G) × (1 + DF) × (1 + L)) / (1 − I) − 1
+          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", textAlign: "right", maxWidth: "320px" }}>
+            <div>PV = Custo ÷ (1 − L − AC − DF − R − S − G − I)</div>
+            <div style={{ marginTop: "0.25rem" }}>
+              BDI = totalRate ÷ (1 − totalRate)
+            </div>
           </div>
         </div>
         <Hint>
           Não é editável — recalcula em tempo real conforme você ajusta os
-          componentes. Tributos (I) entram no denominador, garantindo que o
-          preço final cobre o imposto sem comer da margem.
+          componentes. Cada componente (L, AC, DF, R, S, G, I) é percentual
+          do preço de venda. Se a soma passar de 95%, o cálculo fica inviável.
         </Hint>
       </Section>
 
