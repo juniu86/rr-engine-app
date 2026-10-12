@@ -64,9 +64,10 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/og-image.png`],
   },
+  // Engine fora do ar para o público (decisão de 12/10/2026): nada indexável.
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
   },
   icons: {
     icon: "/favicon.png",
