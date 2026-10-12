@@ -2,7 +2,16 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Engine fora do ar para o público (decisão de 12/10/2026): o header cobre
+  // também o que não é HTML (fontes, imagens), que a meta tag não alcança.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
 };
 
 // Wrap apenas se Sentry DSN está configurado. Em dev local sem DSN
